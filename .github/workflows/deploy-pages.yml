@@ -1,0 +1,72 @@
+name: Deploy demo to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out docs repository
+        uses: actions/checkout@v4
+
+      - name: Check out Giorgio IM
+        uses: actions/checkout@v4
+        with:
+          repository: m-finder/giorgio-im
+          path: giorgio-im
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: giorgio-im/package-lock.json
+
+      - name: Install dependencies
+        working-directory: giorgio-im
+        run: npm ci
+
+      - name: Build demo
+        working-directory: giorgio-im
+        run: |
+          cat > demo-vite.config.ts <<'EOF'
+          import { defineConfig } from 'vite'
+          import vue from '@vitejs/plugin-vue'
+
+          export default defineConfig({
+            plugins: [vue()],
+            build: {
+              outDir: '../site',
+              emptyOutDir: true,
+            },
+          })
+          EOF
+          npx vite build --config demo-vite.config.ts
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
