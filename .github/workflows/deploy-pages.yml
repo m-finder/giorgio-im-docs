@@ -25,15 +25,27 @@ jobs:
           repository: m-finder/giorgio-im
           path: giorgio-im
 
+      - name: Check out Giorgio IM React
+        uses: actions/checkout@v4
+        with:
+          repository: m-finder/giorgio-im-react
+          path: giorgio-im-react
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: giorgio-im/package-lock.json
+          cache-dependency-path: |
+            giorgio-im/package-lock.json
+            giorgio-im-react/package-lock.json
 
       - name: Install dependencies
         working-directory: giorgio-im
+        run: npm ci
+
+      - name: Install React dependencies
+        working-directory: giorgio-im-react
         run: npm ci
 
       - name: Build demo
@@ -53,13 +65,29 @@ jobs:
           EOF
           npx vite build --config demo-vite.config.ts
 
+      - name: Build React demo
+        working-directory: giorgio-im-react
+        run: |
+          cat > demo-vite.config.ts <<'EOF'
+          import { defineConfig } from 'vite'
+
+          export default defineConfig({
+            base: '/react/',
+            build: {
+              outDir: '../site/react',
+              emptyOutDir: true,
+            },
+          })
+          EOF
+          npx vite build --config demo-vite.config.ts
+
       - name: Publish built demo to main
         run: |
-          rm -rf assets
+          rm -rf assets react
           rm -f index.html .nojekyll
           cp -R site/. .
           touch .nojekyll
-          rm -rf giorgio-im site
+          rm -rf giorgio-im giorgio-im-react site
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
