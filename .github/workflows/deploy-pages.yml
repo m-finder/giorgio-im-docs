@@ -23,12 +23,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: m-finder/giorgio-im
+          ref: main
           path: giorgio-im
 
       - name: Check out Giorgio IM React
         uses: actions/checkout@v4
         with:
           repository: m-finder/giorgio-im-react
+          ref: main
           path: giorgio-im-react
 
       - name: Set up Node.js
